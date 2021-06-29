@@ -264,11 +264,13 @@ export class BlazeFaceModel {
         (boxIndex: number) => tf.slice(boxes, [boxIndex, 0], [1, -1]));
     if (!returnTensors) {
       boundingBoxes = await Promise.all(
-          boundingBoxes.map(async (boundingBox: tf.Tensor2D) => {
-            const vals = await boundingBox.arraySync();
+        boundingBoxes.map((boundingBox: tf.Tensor2D) => {
+          return new Promise<number[][]>((resolve) => {
+            const vals = boundingBox.arraySync();
             boundingBox.dispose();
-            return vals;
-          }));
+            resolve(vals);
+          })
+        }));
     }
 
     const originalHeight = inputImage.shape[1];
@@ -394,15 +396,15 @@ export class BlazeFaceModel {
           scaleBoxFromPrediction(face, scaleFactor as [number, number]);
       let normalizedFace: NormalizedFace;
       if (!annotateBoxes) {
-        const boxData = await scaledBox.array();
+        const boxData = scaledBox.arraySync();
         normalizedFace = {
           topLeft: (boxData as number[]).slice(0, 2) as [number, number],
           bottomRight: (boxData as number[]).slice(2) as [number, number]
         };
       } else {
-        const [landmarkData, boxData, probabilityData] =
-            await Promise.all([face.landmarks, scaledBox, face.probability].map(
-                async d => d.array()));
+        const landmarkData:any = face.landmarks.arraySync();
+        const boxData:any = scaledBox.arraySync();
+        const probabilityData:any = face.probability.arraySync();
 
         const anchor = face.anchor as [number, number];
         const [scaleFactorX, scaleFactorY] = scaleFactor as [number, number];
